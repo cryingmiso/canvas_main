@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>SLOTH</title>
+</head>
+<style type="text/css">
+a:link {text-decoration: none; color: #555555;}
+a:visited {text-decoration: none; color: #555555;}
+a:active {text-decoration: none; color: #555555;}
+a:hover {text-decoration: none; color: yellow;}
+</style>
+<style type="text/css">
+html, body{
+    padding: 0;
+    margin: 0;
+}
+#canvas{
+    position: absolute;
+    left: 0;
+    top: 0;
+}
+
+body{
+    background-color: #222;
+    font-family: "Helvetica";
+    overflow: hidden;
+}
+#control{
+    position: absolute;
+    left:-250px;
+    top: 0;
+    width: 250px;
+    height: 100%;
+    padding: 30px;
+    box-sizing: border-box;
+    color: #49f;
+    background-color: rgba(0, 0, 0,.5);
+    font-size: 14px;
+    -webkit-transition: all .5s linear;
+    
+}
+#ball, #rect{
+    display: inline-block;
+    width: 80px;
+    height: 30px;
+    line-height: 30px;
+    text-align: center;
+    cursor: pointer;
+    border: 1px solid #222;
+    color: #444;
+}
+#ball{
+    border-right:none;
+    margin-right: -5px;
+    border-top-left-radius: 10px;
+    border-bottom-left-radius: 10px;
+    background: orange;
+}
+#rect{
+    border-top-right-radius: 10px;
+    border-bottom-right-radius: 10px;
+}
+
+
+#control h1{
+    font-size: 30px;
+    padding: 0;
+    color: orange;
+    margin: 10px 0 30px 30px;
+    font-family: "Microsoft Yahei";
+    font-weight: 100;
+}
+#control p{
+    margin-bottom: -10px;
+}
+#control input{
+    border: none;
+    background-color: transparent;
+    margin: 20px 0;
+    outline: none;
+}
+#control input[type="text"]{
+    width: 100%;
+    font-size: 25px;
+    appearance: none;
+    padding-bottom: 5px;
+    border-bottom: 3px solid #ededed;
+    color: #ededed;
+}
+
+#control input[type="range"]{
+    width: 100%;
+    -webkit-appearance: none;
+    background-color: silver;
+    height: 8px;
+}
+#control input[type="range"]::-webkit-slider-thumb{
+    -webkit-appearance: none;
+    background-color: seagreen;
+    width: 10px;
+    height: 20px;
+}
+#control input[type="button"]{
+    padding: 5px;
+    margin: 5px 0;
+    background-color: #ff2948;
+    border: 0px;
+    width: 100%;
+    color: white;
+    font-weight: bold;
+}
+
+#btn{
+    position: absolute;
+    top: 20px;
+    right: -40px;
+
+}
+#btn span{
+    display: block;
+    width: 20px;
+    height: 1px;
+    margin-bottom: 4px;
+    border-bottom: 2px solid #fff;
+}
+
+#control.slide{
+    left: 0px;
+    -webkit-transition: left .5s linear;
+}
+
+#tips{
+    position: absolute;
+    bottom: 25%;
+    left: 50%;
+    transform: translateX(-50%);
+    color: rgba(255,255,255,.5);
+    font-size: 19px;
+    //font-weight: lighter;
+    font-weight: bold;
+    text-align: center;
+    border-top: 1px solid rgba(255,255,255,.5);
+    padding: 20px 50px;
+}
+</style>
+<body>
+    <canvas id="canvas"></canvas>
+   <div id="control" style="visibility:visible;"> <!-- visibilirt를 hidden으로 변경하세요 !-->
+      <div>
+        <h1>SETTING</h1>
+        <!-- step을 변경해서 세부 컨트롤 변경가능 !--> 
+        <p style="margin: 0 0 20px 10px;">
+          <span id="ball">원</span>
+          <span id="rect">네모</span>
+        </p>
+        <p>문구</p>
+        <input type="text" id="message" value="SLOTH" onchange="change()">
+        <p>방향</p>
+        <input type="range" id="gra" value="0" min="-1" max="1" step="0.01" onchange="changeV()">
+        <p>속도</p>
+        <input type="range" id="dur" value="0.4" min="0.1" max="0.99" step="0.01" onchange="changeV()">
+        <p>흩어짐</p>
+        <input type="range" id="speed" value="0.1" min="0" max="5" step="0.01" onchange="changeV()">
+        <p>크기</p>
+        <input type="range" id="rad" value="2" min="1.8" max="20" step="0.1" onchange="changeV()">
+        <p>개수</p>
+        <input type="range" id="res" value="10" min="3" max="20" step="1" onchange="change()">
+      </div>
+    
+       <div id="btn">
+         <span></span>
+         <span></span>
+         <span></span>
+       </div>
+
+   </div>
+   <p id="tips"> <a href="http://google.com" alt="이 a태그를 지우면 링크 안해용">ENTER</a> </p>
+   <script type="text/javascript">
+var btn = document.getElementById("btn");
+var control = document.getElementById("control");
+
+btn.addEventListener('click', function(e){
+    control.classList.toggle("slide");
+}, true)
+
+
+var ball = document.getElementById("ball");
+var rect = document.getElementById("rect");
+
+
+
+function chose(particleName){
+    particleName.addEventListener('click', function(e){
+        this.style.backgroundColor = "orange";
+        (particleName == ball ? rect : ball).style.backgroundColor = "rgba(0, 0, 0, 0)";
+        type = (type === "ball" ? "rect" : "ball");
+        change();
+        
+    }, false)
+}
+
+chose(ball);
+chose(rect);
+
+
+var utils = {
+  norm: function(value, min, max) {
+    return (value - min) / (max - min);
+  },
+
+  lerp: function(norm, min, max) {
+    return (max - min) * norm + min;
+  },
+
+  map: function(value, sourceMin, sourceMax, destMin, destMax) {
+    return utils.lerp(utils.norm(value, sourceMin, sourceMax), destMin, destMax);
+  },
+
+  clamp: function(value, min, max) {
+    return Math.min(Math.max(value, Math.min(min, max)), Math.max(min, max));
+  },
+
+  distance: function(p0, p1) {
+    var dx = p1.x - p0.x,
+      dy = p1.y - p0.y;
+    return Math.sqrt(dx * dx + dy * dy);
+  },
+
+  distanceXY: function(x0, y0, x1, y1) {
+    var dx = x1 - x0,
+      dy = y1 - y0;
+    return Math.sqrt(dx * dx + dy * dy);
+  },
+
+  circleCollision: function(c0, c1) {
+    return utils.distance(c0, c1) <= c0.radius + c1.radius;
+  },
+
+  circlePointCollision: function(x, y, circle) {
+    return utils.distanceXY(x, y, circle.x, circle.y) < circle.radius;
+  },
+
+  pointInRect: function(x, y, rect) {
+    return utils.inRange(x, rect.x, rect.x + rect.radius) &&
+      utils.inRange(y, rect.y, rect.y + rect.radius);
+  },
+
+  inRange: function(value, min, max) {
+    return value >= Math.min(min, max) && value <= Math.max(min, max);
+  },
+
+  rangeIntersect: function(min0, max0, min1, max1) {
+    return Math.max(min0, max0) >= Math.min(min1, max1) &&
+      Math.min(min0, max0) <= Math.max(min1, max1);
+  },
+
+  rectIntersect: function(r0, r1) {
+    return utils.rangeIntersect(r0.x, r0.x + r0.width, r1.x, r1.x + r1.width) &&
+      utils.rangeIntersect(r0.y, r0.y + r0.height, r1.y, r1.y + r1.height);
+  },
+
+  degreesToRads: function(degrees) {
+    return degrees / 180 * Math.PI;
+  },
+
+  radsToDegrees: function(radians) {
+    return radians * 180 / Math.PI;
+  },
+
+  randomRange: function(min, max) {
+    return min + Math.random() * (max - min);
+  },
+
+  randomInt: function(min, max) {
+    return min + Math.random() * (max - min + 1);
+  },
+
+  getmiddle: function(p0, p1) {
+    var x = p0.x,
+      x2 = p1.x;
+    middlex = (x + x2) / 2;
+    var y = p0.y,
+      y2 = p1.y;
+    middley = (y + y2) / 2;
+    pos = [middlex, middley];
+
+    return pos;
+  },
+
+  getAngle: function(p0, p1) {
+    var deltaX = p1.x - p0.x;
+    var deltaY = p1.y - p0.y;
+    var rad = Math.atan2(deltaY, deltaX);
+    return rad;
+  },
+  inpercentW: function(size) {
+    return (size * W) / 100;
+  },
+
+  inpercentH: function(size) {
+    return (size * H) / 100;
+  },
+
+}
+
+
+function Particle(x, y, type) {
+  this.radius = 1.1;
+  this.futurRadius = utils.randomInt(radVal, radVal+3); //[1.1,5.1]
+  
+  this.rebond = utils.randomInt(1, 5);
+  this.x = x;
+  this.y = y;
+  
+  this.dying = false;
+  
+  this.base = [x, y];
+
+  this.vx = 0;
+  this.vy = 0;
+  this.type = type;
+  this.friction = .99;
+  this.gravity = graVal;
+  this.color = colors[Math.floor(Math.random() * colors.length)];
+
+  this.getSpeed = function() {
+    return Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+  };
+
+  this.setSpeed = function(speed) {
+    var heading = this.getHeading();
+    this.vx = Math.cos(heading) * speed;
+    this.vy = Math.sin(heading) * speed;
+  };
+
+  this.getHeading = function() {
+    return Math.atan2(this.vy, this.vx);
+  };
+
+  this.setHeading = function(heading) {
+    var speed = this.getSpeed();
+    this.vx = Math.cos(heading) * speed;
+    this.vy = Math.sin(heading) * speed;
+  };
+
+  this.update = function(heading) {
+    this.x += this.vx;
+    this.y += this.vy;
+    this.vy += graVal;
+
+    this.vx *= this.friction;
+    this.vy *= this.friction;
+    
+    if(this.radius < this.futurRadius && this.dying === false){
+      this.radius += durVal;
+    }else{
+      this.dying = true;
+    }
+      
+    if(this.dying === true){
+      this.radius -= durVal;
+    }
+    
+    if(type === "ball"){
+      context.save();
+      context.fillStyle = this.color;
+      context.beginPath();
+      context.arc(this.x, this.y, this.radius, Math.PI * 2, false);
+      context.closePath();
+      context.fill();
+      context.restore();
+    }
+
+    if(type === "rect"){
+      context.save();
+      context.fillStyle = this.color;
+      context.beginPath();
+      context.fillRect(this.x, this.y, this.futurRadius, this.futurRadius)
+      context.closePath();
+      context.fill();
+      context.restore();
+    }
+    
+
+    if (this.y < 0 || this.radius < 1) {
+      this.x = this.base[0];
+      this.y = this.base[1];
+      this.dying = false;
+      this.radius = 1.1;
+      this.setSpeed(spdVal);
+      this.futurRadius = utils.randomInt(radVal, radVal+3);  
+      this.setHeading(utils.randomInt(utils.degreesToRads(0), utils.degreesToRads(360)));
+    }
+
+  }
+
+  this.setSpeed(utils.randomInt(.1, .5));
+  this.setHeading(utils.randomInt(utils.degreesToRads(0), utils.degreesToRads(360)));
+
+}
+
+
+function Shape(x, y, texte){
+        this.x = x;
+        this.y = y;
+        this.size = 150;
+
+        this.text = texte;
+        this.placement = [];
+    }
+
+
+Shape.prototype.getValue = function(){
+
+         context.textAlign = "center";
+         context.font =  this.size + "px arial";
+         context.fillText(this.text, this.x, this.y);
+
+         var idata = context.getImageData(0, 0, W, H);
+         var buffer32 = new Uint32Array(idata.data.buffer);
+
+         for(var j=0; j < H; j += gridY){
+            for(var i=0 ; i < W; i += gridX){
+                if(buffer32[j * W + i]){
+                    var particle = new Particle(i, j, type);
+                    this.placement.push(particle);
+                }
+            }
+         }
+        
+        context.clearRect(0, 0, W, H);
+
+}
+
+
+var canvas = document.getElementById('canvas');
+    context = canvas.getContext('2d');
+    W = canvas.width = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+
+    gridY = 7, gridX = 7;
+
+    type = "ball";
+   //여기에 색 추가
+   colors = [
+  '#f44336', '#e91e63', '#9c27b0', '#673ab7', '#3f51b5',
+  '#2196f3', '#03a9f4', '#00bcd4', '#009688', '#4CAF50',
+  '#8BC34A', '#CDDC39', '#FFEB3B', '#FFC107', '#FF9800',
+  '#FF5722'
+  ];
+
+var message = document.getElementById('message'),
+    gravity = document.getElementById('gra'),
+    duration = document.getElementById('dur'),
+    speed = document.getElementById('speed'),
+    radius = document.getElementById('rad'),
+    resolution = document.getElementById('res');
+
+   graVal = parseFloat(gravity.value);
+   durVal = parseFloat(duration.value);
+   spdVal = parseFloat(speed.value);
+   radVal = parseFloat(radius.value);
+   resVal = parseFloat(resolution.value);      
+
+var word = new Shape(W/2, H/2, message.value);
+    word.getValue();
+
+function change(){
+      context.clearRect(0, 0, W, H);
+      gridX = parseFloat(resolution.value);
+      gridY = parseFloat(resolution.value);
+      word.placement = [];
+      word.text = message.value;
+      word.getValue();
+}
+
+function changeV() {
+     graVal = parseFloat(gravity.value);
+     durVal = parseFloat(duration.value);
+     spdVal = parseFloat(speed.value);
+     radVal = parseFloat(radius.value);
+}
+
+
+(function drawFrame(){
+    window.requestAnimationFrame(drawFrame, canvas);
+    context.clearRect(0, 0, W, H);
+
+    for(var i=0; i< word.placement.length; i++){
+        word.placement[i].update();
+    }
+}())
+
+
+function resize(){
+	
+	//cryingmiso_resize
+    //W = canvas.width = window.innerWidth;
+    //H = canvas.height = window.innerHeight;
+    
+    var canvas = document.getElementById('canvas');
+    var canvasRatio = canvas.height / canvas.width;
+    var windowRatio = window.innerHeight / window.innerWidth;
+    var width;
+    var height;
+
+    if (windowRatio < canvasRatio) {
+    	height = width * canvasRatio;
+    	//mobile
+        //height = window.innerHeight;
+        width = window.innerWidth;
+        //width = height / canvasRatio;
+    } else {
+        width = window.innerWidth;
+        height = width * canvasRatio;
+    }
+
+
+    canvas.style.width = width + 'px';
+    canvas.style.height = height + 'px';
+    
+    
+    
+    var filter = "win16|win32|win64|mac";
+
+    if(navigator.platform){
+        if(0 > filter.indexOf(navigator.platform.toLowerCase())){
+            tesloth = 'a';
+        }else{
+            location.reload(true);
+        }
+    }
+
+    
+
+}
+
+window.addEventListener('resize', resize, false);
+
+
+
+
+   </script>
+</body>
+</html>
